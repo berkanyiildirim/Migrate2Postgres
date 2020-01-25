@@ -1,7 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Java template
 # Compiled class file
-*.class
 
 # Log file
 *.log
@@ -14,7 +13,6 @@
 .mtj.tmp/
 
 # Package Files #
-*.jar
 *.war
 *.ear
 *.zip
@@ -28,3 +26,5 @@ dist/
 target/
 
 .idea
+.directory
+*.conf
