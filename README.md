@@ -69,7 +69,11 @@ You probably just crammed weeks of work into a few hours.  I think that you dese
 # Usage: 
 
     java <options> net.twentyonesolutions.m2pg.PgMigrator <command> [<config-file> [<output-file>]]
-
+    
+    
+    ./migrate.sh ddlexecute
+    ./migrate.sh dml    
+             
   `<options>`
 --
 The JVM (Java) options, like `classpath` and memory settings if needed.
