@@ -5,7 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -70,13 +72,16 @@ public class PgMigrator {
         Config config = Config.fromFile(configFile);
 
         if (outputFile.isEmpty())
-            outputFile = config.name + "-" + action + "-" + timestamp + (action.equals("ddl") ? ".sql" : ".log");
+            outputFile = config.name + "-" + action + "-" + timestamp + (action.equals("ddl") || action.equals("ddlexecute")  ? ".sql" : ".log");
 
         Schema schema = new Schema(config);
 
         if (action.equals("ddl")){
 
             doDdl(schema, outputFile);
+        }else if (action.equals("ddlexecute")){
+
+            doDdlExecute(schema, outputFile);
         }
         else if (action.equals("dml")){
 
@@ -339,6 +344,25 @@ public class PgMigrator {
                 System.out.println(status);
             }
         }
+    }
+
+    public static void doDdlExecute(Schema schema, String filename) throws IOException, SQLException {
+
+        String ddl = schema.generateExecuteDdl();
+        String[] tokens = ddl.split(";");
+
+        Path path = Files.write(Paths.get(filename), ddl.getBytes(StandardCharsets.UTF_8));
+        System.out.println("\nCreated executed-DDL file at " + path.toAbsolutePath().toString());
+
+        Config config = schema.config;
+        Connection conTgt = config.connect(config.target);
+        Statement statTgt = conTgt.createStatement();
+
+        for (String t : tokens){
+            statTgt.executeUpdate(t);
+        }
+        conTgt.close();
+
     }
 
 }

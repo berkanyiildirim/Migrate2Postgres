@@ -380,4 +380,45 @@ public class Schema {
         return sb.toString();
     }
 
+    public String generateExecuteDdl() {
+
+        boolean doDropSchema = (boolean) config.ddl.get("drop_schema");
+
+        StringBuilder sb = new StringBuilder(4096);
+
+        Map<String, String> schemaMapping = (Map<String, String>)config.config.getOrDefault("schema_mapping", Collections.EMPTY_MAP);
+
+        List<String> distinctSchemas = schema
+                .values()
+                .stream()
+                .map(t -> schemaMapping.getOrDefault(t.schemaName, t.schemaName).toLowerCase())
+                .distinct()
+                .collect(Collectors.toList());
+
+
+        for (String tgtSchema : distinctSchemas){
+
+            if (doDropSchema){
+                sb.append("DROP SCHEMA IF EXISTS " + tgtSchema + " CASCADE;\n");
+            }
+
+            sb.append("CREATE SCHEMA IF NOT EXISTS " + tgtSchema + ";\n\n");
+        }
+        sb.append("\n");
+
+        for (Table table : schema.values()){
+
+            if (!doDropSchema)
+                sb.append("DROP TABLE IF EXISTS " + config.getTargetTableName(table) + ";\n");
+
+            sb.append(
+                    table.getDdl(config)
+            )
+                    .append("\n\n");
+        }
+
+        return sb.toString();
+    }
+
+
 }

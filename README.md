@@ -50,6 +50,10 @@ Execute the generated DDL script
 --
 Review the script generated in the previous step and make changes if needed, then execute it in your favorite SQL client, e.g. psql, PgAdmin, or DBeaver.
 
+Run the DDLEXECUTE command
+--
+This will generate a SQL script with commands for `CREATE SCHEMA`, `CREATE TABLE`, etc. and auto execute generated script without copy paste or SQL client. If you don't need to review the generated script you can use.
+
 Run the DML command
 --
 This will copy the data from the source database to your target Postgres database according to the settings in the config file.
@@ -87,6 +91,8 @@ Then you can refer to it in the config file as follows:
 --
  - `DDL` - Generate a script that will create the schema objects with the mapped data types, name transformations, identity columns, etc.  You should review the script prior to executing it with your preferred SQL client.
  
+ - `DDLEXECUTE` - Generate script that will create the schema objects with the mapped data types, name transformations, identity columns, etc and auto execute . You don't need to SQL client.
+  
  - `DML` - Copy the data from the source database to the target Postgres database in the schema created in the `DDL` step.
 
   `<config-file>`
