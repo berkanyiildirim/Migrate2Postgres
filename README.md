@@ -104,8 +104,7 @@ Böylece config dosyasını aşağıdaki gibi refer edebilirsiniz:
 
   `<output-file>`
 --
-output/log dosyaları için path'ı tanımlar. Vasayılan, proje ismi+timestamp olarak çalışma dizinidir. The arguments are passed by position, so `<output-file>` can only be passed if `<config-file>` was passed explicitly.
-
+output/log dosyaları için path'ı tanımlar. Vasayılan, proje ismi+timestamp olarak çalışma dizinidir. 
 Ayrıca bakınız [shell/batch example scripts](examples/bin)
 
 # Config File Reference  (WIP)
@@ -115,9 +114,6 @@ Config dosyası JSON formatındadır ve Migration Projesinin ayrıntılarını i
 Çalışma zamanında, önce defaults.conf dosyası okunur, ardından projenin yapılandırma dosyasında bir şablon belirtilirse değerleri uygulanır ve sonra projenin yapılandırma dosyasındaki ayarlar uygulanır. Aynı anahtar yoluna sahip ayarlar, aynı yolun önceki değerlerinin üzerine yazılır.
 
 Bir JSON dosyası olarak ters eğik çizgilerden kaçınılmalıdır, bu nedenle `"a\b"`  dizesini koymak istiyorsanız ters eğik çizgiden kaçmalı ve `"a\\b"`' olarak yazmalısınız.
-
-Values that are wrapped in `%` symbols are treated as varaibles and evaluated at runtime, so for example if you specify a value of `%sqlserver.password%`, the tool will look for a value with that key either in the JVM System Properties, or the config files, and replace the variable with that value.
-
  
 `%` Sembolü ile sarılmış değerler, değişken olarak değerlendirilir ve  runtime sırasında değerlendirilir; örneğin, `%sqlserver.password%` değerini belirtirseniz, tool bu anahtarla JVM Sistem Özellikleri'nde veya yapılandırma dosyalarında bir değer arar ve değişkeni bu değerle değiştirir.
 
