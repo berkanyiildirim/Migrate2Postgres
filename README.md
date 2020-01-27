@@ -1,88 +1,88 @@
 # Migrate2Postgres
 
-This tool allows you to easily migrate databases from other JDBC-compliant DBMSs to Postgres.  The project is written in Java, so it is cross-platform and can run on any operating system that has a Java SE Runtime version 1.8 or later.
+Bu araç, veritabanlarını diğer JDBC uyumlu DBMS'lerden Postgres'e kolayca taşımanızı sağlar. Proje Java ile yazılmıştır, platform bağımsız Java SE Runtime sürüm 1.8 veya üzeri olan herhangi bir işletim sisteminde çalıştırılabilir.
 
-Currently the project ships with a [template for SQL Server](src/main/resources/templates/ms-sql-server.conf) as a source, but other source database systems can be added easily by following the same patterns that are documented in the SQL Server template and the [example config files](examples/conf).
+Proje örnek olarak [SQL Server](src/main/resources/templates/ms-sql-server.conf) ile birlikte gelir, fakat diğer kaynak veritabanı sistemleri SQL Server ve [example config ](examples/conf) şablonlarında belgelenen kalıplar izlenerek kolayca eklenebilir.
 
-# Requirements
+# Gereksinimler
 
  - Java Runtime Environment (JRE) 1.8 or later
- - JDBC Drivers for the DBMSs used
+ - Kullanılan DBMS'ler için JDBC Sürücüleri (lib/ dizini altına eklendi)
 
-# Getting Started
+# Başlangıç
 
-Create a config file
+Yapılandırma dosyasını oluşturun
 --
-The config file is a JSON file that contains the information needed for the migration.  It can be a standalone file, or inherit from a template by specifying the `template` key where the value is a valid template, e.g. [ms-sql-server](src/main/resources/templates/ms-sql-server.conf).
+Yapılandırma dosyası, geçiş için gereken bilgileri içeren bir JSON dosyasıdır.   Bağımsız bir dosya olabilir veya geçerli bir şablondan `template`  anahtarı belirterek devralınabilir, örn. [ms-sql-server](src/main/resources/templates/ms-sql-server.conf).
 
-That information includes the connection details for the source and target databases, mappings of SQL types for the DDL phase (e.g. SQL Server's `NVARCHAR` to Postgres' `TEXT`), mappings of JDBC types for the DML phase, name transformations (e.g. `SomeTableName` to `some_table_name`), queries to run before (e.g. disable triggers) and after (e.g. re-enable triggers or `REFRESH MATERIALIZED VIEWS`) the DML process, number of concurrent threads, and more.
+Bu bilgiler, kaynak ve hedef veritabanları için bağlantı ayrıntılarını, DDL aşaması için SQL türlerinin eşlemelerini (örn. SQL Server `NVARCHAR` Postgres `TEXT`), DML aşaması için JDBC türlerinin eşlemelerini, ad dönüşümlerini (örn. `SomeTableName` - `some_table_name`), thread sayısı ve daha fazlasını içerir.
 
-The "effective" configuration values are applied in the following manner:
+"Etkili" yapılandırma değerleri aşağıdaki şekilde uygulanır:
 
-1) The `defaults` are read from [defaults.conf](src/main/resources/templates/defaults.conf)
-2) If the config file has a key named `template`, then the template specified in the value is read
-3) The values from the config file are set
-4) Values that are wrapped with the `%` symbol are evaluated from other config settings or Java System Properties
+1) `Varsayılanlar`  [defaults.conf](src/main/resources/templates/defaults.conf) dosyasından okunur.
+2) Yapılandırma dosyasının `template` adlı bir anahtarı varsa, değerde belirtilen şablon okunur.
+3) Config dosyasındaki değerler ayarlanır
+4) `%` Simgesiyle sarılmış değerler diğer yapılandırma ayarlarından veya Java sistem özelliklerinden değerlendirilir.
 
-Configuration file keys that match the keys in the template files override the template settings, so for example if the config file specifies the key `dml.threads` with a value of `4`, it will overwrite the setting specified in the `defaults` template, which is set to "cores" (cores means the number of CPU cores available to the JVM that runs the tool).
+Template dosyalarındaki anahtarlarla eşleşen configuration dosyası anahtarları template ayarlarını geçersiz kılar. örneğin, yapılandırma dosyası `dml.threads` anahtarını `4` değeriyle belirtirse, `defaults` şablonunda belirtilen ve "cores" olarak ayarlanan ayarın üzerine yazılır. (çekirdekler, JVM tarafından kullanılabilen CPU çekirdeklerinin sayısı ifade eder).
 
-Values that are wrapped with the `%` symbol are treated as variables, and are evaluated at runtime.  The variable values can be set either in the config file by specifying the key path, or as Java System Properties.  So for example, you can specify the value of "AdventureWorks" to the key "source.db_name" in one of two ways:
+`%` Simgesiyle sarılmış değerler değişken olarak varsayılır ve çalışma zamanında değerlendirilir. Değişken değerlerini config dosyasında veya Java Sistem Özellikleri olarak ayarlanabilir. Örneğin, "source.db_name" anahtarına "AdventureWorks" değerini iki yoldan biriyle belirtebilirsiniz:
 
-1) By setting it in the config file as follows:
+1) Config dosyasında aşağıdaki gibi ayarlayarak:
 
     `source : {
         db_name : "AdventureWorks"
     }`
 
-2) By setting a Java System Property in the `<options>` via the JVM args, i.e.
+2) JVM argümanları aracılığıyla `<options>` içinde bir Java Sistem Özelliği ayarlayarak:
 
     `-Dsource.db_name=AdventureWorks`
-    
-Then specifying the config value `%source.db_name%` will evaluate to "AdventureWorks" at runtime.  If the the same key is specified both in the config file and in the Java System Properties, the Java System Properties are used.
 
-See the comments in the [defaults.conf](src/main/resources/templates/defaults.conf), [template for SQL Server](src/main/resources/templates/ms-sql-server.conf), and the included [example config files](examples/conf) for more information.
+Böylece `%source.db_name%` yapılandırma değeri çalışma zamanında "AdventureWorks" olarak değerlendirilir. Aynı anahtar hem yapılandırma dosyasında hem de Java Sistem Özellikleri'nde belirtilirse, Java Sistem Özellikleri kullanılır.
 
-Run the DDL command
+Daha fazla bilgi için [defaults.conf](src/main/resources/templates/defaults.conf),  [template for SQL Server](src/main/resources/templates/ms-sql-server.conf) ve [örnek yapılandırma dosyalarındaki](examples/conf) yorumlara bakın.
+
+DDL komutunu çalıştırın
 --
-This will generate a SQL script with commands for `CREATE SCHEMA`, `CREATE TABLE`, etc.
+Çalışma dizininde `CREATE SCHEMA`, `CREATE TABLE` vb. komutları içeren SQL script dosyası oluşturur.
 
-Execute the generated DDL script
+Oluşturulan DDL komut dosyasını çalıştırın
 --
-Review the script generated in the previous step and make changes if needed, then execute it in your favorite SQL client, e.g. psql, PgAdmin, or DBeaver.
+Önceki adımda oluşturulan komut dosyasını gözden geçirin ve gerekirse değişiklik yapın, ardından psql, PgAdmin veya DBeaver gibi SQL istemcisinde.
 
-Run the DDLEXECUTE command
+Veya DDLEXECUTE komutunu çalıştırın
 --
-This will generate a SQL script with commands for `CREATE SCHEMA`, `CREATE TABLE`, etc. and auto execute generated script without copy paste or SQL client. If you don't need to review the generated script you can use.
+Çalışma dizininde `CREATE SCHEMA`, `CREATE TABLE` vb. komutları içeren SQL script dosyası oluşturur ve oluşturulan komut dosyasını kopyala yapıştır veya SQL istemcisi olmadan otomatik olarak çalıştırır. Oluşturulan komut dosyasını gözden geçirmeniz gerekmiyorsa kullanabilirsiniz.
 
-Run the DML command
+DML komutunu çalıştırın
 --
-This will copy the data from the source database to your target Postgres database according to the settings in the config file.
+Bu, yapılandırma dosyasındaki ayarlara göre verileri kaynak veritabanındaki hedef Postgres veritabanınıza kopyalar.
 
-Take a vacation
+Tatile çıkın
 --
-You probably just crammed weeks of work into a few hours.  I think that you deserve a vacation!
+Muhtemelen haftalarca sürecek çalışmayı birkaç saate hallettin. Bence bir tatili hak ediyorsun!
 
 # Watch tutorial video
 
 [![Migrate a SQL Server Database to Postgres](http://img.youtube.com/vi/5eF9_UB73TI/0.jpg)](http://www.youtube.com/watch?v=5eF9_UB73TI "How to Easily Migrate a SQL Server Database to Postgres")
 
-# Usage: 
+# Kullanımı:
 
     java <options> net.twentyonesolutions.m2pg.PgMigrator <command> [<config-file> [<output-file>]]
-    
-    
-    ./migrate.sh ddlexecute
+
+Örnek çalıştırma:
+
+    ./migrate.sh ddl  #veya  ./migrate.sh ddlexecute 
     ./migrate.sh dml    
-             
+
   `<options>`
 --
-The JVM (Java) options, like `classpath` and memory settings if needed.
+İhtiyaç olursa JVM (Java) seçenekleri, `classpath` ve memory ayarları gibi.
 
-You can also pass some configuraion values in the options, which you might not want to keep in the config file, e.g. passwords etc., so for example if you set the following Java System Properties:
-
+Bazı yapılandırma değerlerini yapılandırma dosyasında tutmak istemeyebileceğiniz için `<options>` de aktarabilirsiniz;
     -Dsqlserver.username=pgmigrator -Dsqlserver.password=secret
     
-Then you can refer to it in the config file as follows:
+Böylece config dosyasını aşağıdaki gibi refer edebilirsiniz:
 
     connections : {
         mssql : {
@@ -93,31 +93,33 @@ Then you can refer to it in the config file as follows:
 
   `<command>`
 --
- - `DDL` - Generate a script that will create the schema objects with the mapped data types, name transformations, identity columns, etc.  You should review the script prior to executing it with your preferred SQL client.
+ - `DDL` - Eşlenen data types, name transformations, identity columns vb. ile schemayı oluşturacak SQL script dosyası oluşturur. Komut dosyasını tercih ettiğiniz SQL istemcisiyle çalıştırmadan önce gözden geçirmelisiniz.
  
- - `DDLEXECUTE` - Generate script that will create the schema objects with the mapped data types, name transformations, identity columns, etc and auto execute . You don't need to SQL client.
+ - `DDLEXECUTE` - Eşlenen data types, name transformations, identity columns vb. ile schemayı oluşturacak SQL script dosyasını oluşturur ve otomatik çalıştırır. SQL istemcisine veya kopyala-yapıştır işlemine ihtiyacınız olmaz.
   
- - `DML` - Copy the data from the source database to the target Postgres database in the schema created in the `DDL` step.
+ - `DML` - `DDL` adımında kaynak veritabanından oluşturulan schemayı hedef Postgres veritabanına kopyalar.
 
   `<config-file>`
---
-Optional path to the config file. Defaults to `./Migrate2Postgres.conf`.
+-- Yapılandırma dosyasının isteğe bağlı yolunu tanımlar. Varsayılan `./Migrate2Postgres.conf`.
 
   `<output-file>`
 --
-Optional path of the output/log file. Defaults to current directory with the project name and timestamp. The arguments are passed by position, so `<output-file>` can only be passed if `<config-file>` was passed explicitly.
+output/log dosyaları için path'ı tanımlar. Vasayılan, proje ismi+timestamp olarak çalışma dizinidir. The arguments are passed by position, so `<output-file>` can only be passed if `<config-file>` was passed explicitly.
 
-See also the [shell/batch example scripts](examples/bin)
+Ayrıca bakınız [shell/batch example scripts](examples/bin)
 
-# Config File Reference (WIP)
+# Config File Reference  (WIP)
 
-The Config file is in JSON format and it contains the details of the Migration Project.
+Config dosyası JSON formatındadır ve Migration Projesinin ayrıntılarını içerir.
 
-At runtime, first the defaults.conf file is read, then if a template is specified in the project's config file its values are applied, and then the settings from the project's config file are applied.  Settings with the same path of keys overwrite previous values of the same path.
+Çalışma zamanında, önce defaults.conf dosyası okunur, ardından projenin yapılandırma dosyasında bir şablon belirtilirse değerleri uygulanır ve sonra projenin yapılandırma dosyasındaki ayarlar uygulanır. Aynı anahtar yoluna sahip ayarlar, aynı yolun önceki değerlerinin üzerine yazılır.
 
-As a JSON file, backslashes must be escaped, so if you want to put the string `"a\b"` you must escape the backslash and write it as `"a\\b"`.
+Bir JSON dosyası olarak ters eğik çizgilerden kaçınılmalıdır, bu nedenle `"a\b"`  dizesini koymak istiyorsanız ters eğik çizgiden kaçmalı ve `"a\\b"`' olarak yazmalısınız.
 
 Values that are wrapped in `%` symbols are treated as varaibles and evaluated at runtime, so for example if you specify a value of `%sqlserver.password%`, the tool will look for a value with that key either in the JVM System Properties, or the config files, and replace the variable with that value.
+
+ 
+`%` Sembolü ile sarılmış değerler, değişken olarak değerlendirilir ve  runtime sırasında değerlendirilir; örneğin, `%sqlserver.password%` değerini belirtirseniz, tool bu anahtarla JVM Sistem Özellikleri'nde veya yapılandırma dosyalarında bir değer arar ve değişkeni bu değerle değiştirir.
 
 ```
 *
@@ -179,5 +181,4 @@ Values that are wrapped in `%` symbols are treated as varaibles and evaluated at
 
 `name`
 --
-Indicates the name of the migration project.  Output files are prefixed with that name.
-
+Migration projesinin adını gösterir. Çıktı dosyalarının önüne bu ad gelir.
