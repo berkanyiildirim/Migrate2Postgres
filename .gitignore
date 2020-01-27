@@ -23,7 +23,10 @@
 hs_err_pid*
 
 dist/
+.settings/
 
 .idea
 .directory
 *.conf
+.project
+.classpath
