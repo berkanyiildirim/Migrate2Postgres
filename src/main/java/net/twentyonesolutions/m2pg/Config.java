@@ -5,16 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 import java.util.function.UnaryOperator;
 
 
@@ -32,9 +24,15 @@ public class Config {
     public static final String DATA_TYPE = "DATA_TYPE";
     public static final String CHARACTER_MAXIMUM_LENGTH = "CHARACTER_MAXIMUM_LENGTH";
     public static final String NUMERIC_PRECISION = "NUMERIC_PRECISION";
+    public static final String TABLE_VİEW = "TABLE_VİEW";
+    public static final String OBJECT_TYPE = "OBJECT_TYPE";
+    public static final String CONSTRAINT_TYPE = "CONSTRAINT_TYPE";
+    public static final String CONSTRAINT_NAME = "CONSTRAINT_NAME";
+    public static final String DETAILS = "DETAILS";
 
     public static final String DEFAULT_CONFIG_FILENAME = "Migrate2Postgres.conf";
 
+    final static List<Constraints> constraintsList = new ArrayList();
     static final UnaryOperator uppercaseValue = o -> o.toString().toUpperCase();
 
     Map<String, Object> config;
@@ -46,7 +44,7 @@ public class Config {
     String name, source, target;
 
 
-    public Config(Map<String, Object> config){
+    public Config(Map<String, Object> config) throws SQLException {
 
         this.config = config;
 
@@ -67,6 +65,38 @@ public class Config {
         this.parseConnections();
         this.parseDdl();
         this.parseDml();
+        this.constraints();
+    }
+
+    public static List<Constraints> getAllConstraints(){
+
+        return constraintsList;
+    }
+
+    private void constraints() throws SQLException {
+
+        String informationSchemaconstraints = (String) config.get("information_schema.constraints");
+
+        if (informationSchemaconstraints.isEmpty()){
+            throw new IllegalArgumentException("information_schema.constraints is missing");
+        }
+
+        Connection conSrc2 = connect(source);
+        Statement statement2 = conSrc2.createStatement();
+        ResultSet resultSet2 = statement2.executeQuery(informationSchemaconstraints);
+
+        while (resultSet2.next()){
+
+            Constraints constraints = new Constraints(
+                    resultSet2.getString(TABLE_VİEW),
+                    resultSet2.getString(OBJECT_TYPE),
+                    resultSet2.getString(CONSTRAINT_TYPE),
+                    resultSet2.getString(CONSTRAINT_NAME),
+                    resultSet2.getString(DETAILS)
+            );
+
+            constraintsList.add(constraints);
+        }
     }
 
 
@@ -208,7 +238,7 @@ public class Config {
     }
 
 
-    public static Config fromFile(String configFile) throws IOException {
+    public static Config fromFile(String configFile) throws IOException, SQLException {
 
         if (configFile == null || configFile.isEmpty())
             configFile = DEFAULT_CONFIG_FILENAME;
@@ -237,7 +267,7 @@ public class Config {
     }
 
 
-    public static Config fromFile() throws IOException {
+    public static Config fromFile() throws IOException, SQLException {
         return fromFile(null);
     }
 
@@ -259,6 +289,7 @@ public class Config {
         java.util.Scanner scanner = new java.util.Scanner(is).useDelimiter("\\A");
         String jsonString = scanner.hasNext() ? scanner.next().trim() : "";
 
+        //System.out.println(jsonString);
         Map flat = Util.parseJsonToMap(jsonString);
         return flat;
     }
@@ -316,15 +347,42 @@ public class Config {
         String schemaName = this.translateSchema(table.schemaName);
 
         String result = schemaName.isEmpty() ? tableName : schemaName + "." + tableName;
-
         return result;
     }
 
+    public String getTargetTableName(String srcTableName,String srcSchemaName){
 
-    public String getTargetColumnName(String colName) {
+        String transformTable = (String)this.config.getOrDefault("table_transform", "");
+
+        String name = this.translateTable(srcTableName);
+        String tableName = transform(name, transformTable);
+        String schemaName = this.translateSchema(srcSchemaName);
+
+        String result = schemaName.isEmpty() ? tableName : schemaName + "." + tableName;
+        return result;
+    }
+
+    public StringBuilder getTargetColumnName(String colName) {
+
+        String[] colArray;
+        colArray = colName.split(",");
+        StringBuilder targetColumnName = new StringBuilder();
+
         String transformation = (String)this.config.getOrDefault("column_transform", "");
-        String name = this.translateColumn(colName);
-        return this.transform(name, transformation);
+        if(colArray.length == 1){
+
+            String name = this.translateColumn(colName);
+            targetColumnName.append(transform(name, transformation));
+        }
+        else{
+            for(int i =0;i<colArray.length;i++){
+                String name = this.translateColumn(colArray[i]);
+                targetColumnName.append(transform(name.trim(), transformation));
+                if(i<colArray.length-1)
+                    targetColumnName.append(",");
+            }
+        }
+        return targetColumnName;
     }
 
 
@@ -382,7 +440,7 @@ public class Config {
 
     public String buildColumnDdlLine(Column col){
 
-        String tgtColumn = getTargetColumnName(col.name);
+        StringBuilder tgtColumn = getTargetColumnName(col.name);
 
         StringBuilder sb = new StringBuilder(256);
 

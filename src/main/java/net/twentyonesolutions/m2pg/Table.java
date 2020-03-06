@@ -28,7 +28,6 @@ public class Table {
         }
     }
 
-
     public String getColumnListSrc(Config config){
 
         String columnPrefix = (String)config.dml.getOrDefault("source_column_quote_prefix", "");
@@ -59,7 +58,8 @@ public class Table {
     }
 
 
-    public String getDdl(Config config){
+    public StringBuilder getDdl(Config config){
+
 
         String colsSql = this.columns.stream()
             .map(col -> config.buildColumnDdlLine(col))
@@ -67,7 +67,31 @@ public class Table {
                     Collectors.joining("\n\t,")
             );
 
-        String ddl = "CREATE TABLE " + config.getTargetTableName(this) + " (\n\t " + colsSql + "\n);";
+        StringBuilder ddl =new StringBuilder("CREATE TABLE " + config.getTargetTableName(this) + " (\n\t " + colsSql + "\n);");
+
+        List<Constraints> constraintsArrayList;
+        constraintsArrayList = Config.getAllConstraints();
+
+        String srcTableName;
+        String srcSchemaName;
+
+        for(Constraints c:constraintsArrayList){
+            srcSchemaName= c.table_view.split("\\.")[0];
+            srcTableName= c.table_view.split("\\.")[1];
+
+            c.table_view = config.getTargetTableName(srcTableName,srcSchemaName);
+        }
+
+//        ALTER TABLE table_name ADD PRIMARY KEY (column_1, column_2);
+        String alter = "";
+        for(Constraints c:constraintsArrayList){
+
+            if(config.getTargetTableName(this).equals(c.table_view) && c.constraint_type.equals("Primary key") && c.object_type.equals("Table")){
+
+                alter = "\nALTER TABLE " + c.table_view + " ADD PRIMARY KEY (" + config.getTargetColumnName(c.details) +");\n";
+            }
+        }
+        ddl.append(alter);
 
         return ddl;
     }

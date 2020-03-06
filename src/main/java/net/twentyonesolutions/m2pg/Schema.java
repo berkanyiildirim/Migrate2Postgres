@@ -8,26 +8,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static net.twentyonesolutions.m2pg.Config.CHARACTER_MAXIMUM_LENGTH;
-import static net.twentyonesolutions.m2pg.Config.COLUMN_DEFAULT;
-import static net.twentyonesolutions.m2pg.Config.COLUMN_DEFINITION;
-import static net.twentyonesolutions.m2pg.Config.COLUMN_NAME;
-import static net.twentyonesolutions.m2pg.Config.DATA_TYPE;
-import static net.twentyonesolutions.m2pg.Config.IS_COMPUTED;
-import static net.twentyonesolutions.m2pg.Config.IS_IDENTITY;
-import static net.twentyonesolutions.m2pg.Config.IS_NULLABLE;
-import static net.twentyonesolutions.m2pg.Config.NUMERIC_PRECISION;
-import static net.twentyonesolutions.m2pg.Config.ORDINAL_POSITION;
-import static net.twentyonesolutions.m2pg.Config.TABLE_NAME;
-import static net.twentyonesolutions.m2pg.Config.TABLE_SCHEMA;
+import static net.twentyonesolutions.m2pg.Config.*;
 
 public class Schema {
 
@@ -39,17 +23,17 @@ public class Schema {
 
         this.config = config;
 
-        String informationSchemaSql = (String) config.config.get("information_schema.query");
-        if (informationSchemaSql.isEmpty()){
-            throw new IllegalArgumentException("information_schema.query is missing");
+        String informationSchemaddlSql = (String) config.config.get("information_schema.ddlquery");
+        if (informationSchemaddlSql.isEmpty()){
+            throw new IllegalArgumentException("information_schema.ddlquery is missing");
         }
 
         Connection conSrc = config.connect(config.source);
         Statement statement = conSrc.createStatement();
-        ResultSet resultSet = statement.executeQuery(informationSchemaSql);
+        ResultSet resultSet = statement.executeQuery(informationSchemaddlSql);
 
         if (!resultSet.isBeforeFirst()){
-            System.out.println("information_schema.query returned no results: \n" + informationSchemaSql);
+            System.out.println("information_schema.query returned no results: \n" + informationSchemaddlSql);
             throw new IllegalArgumentException("information_schema.query returned no results");
         }
 

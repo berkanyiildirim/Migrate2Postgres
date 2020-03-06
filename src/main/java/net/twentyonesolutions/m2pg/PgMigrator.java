@@ -189,12 +189,8 @@ public class PgMigrator {
                 try {
                     String entry = task.get() + "\n\n";
                     Util.log(path, entry);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (InterruptedException | IOException | ExecutionException e) {
+                    System.out.println("\t--Type not found!");
                 }
             });
 
